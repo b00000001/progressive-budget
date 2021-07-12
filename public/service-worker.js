@@ -2,9 +2,8 @@ const FILES_TO_CACHE = [
   "/",
   "/index.html",
   "/index.js",
-  "/favicon.ico",
   "/styles.css",
-  "/icons/icon-144x144.png",
+  "/icon-144x144.png",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png"
 ];
@@ -23,7 +22,6 @@ self.addEventListener("install", function (evt) {
   self.skipWaiting();
 });
 
-//activate
 self.addEventListener("activate", (evt) => {
   evt.waitUntil(
     caches.keys().then((keyList) => {
