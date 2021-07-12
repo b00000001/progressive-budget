@@ -1,3 +1,5 @@
+const indexedDB = window.indexedDB;
+
 let db;
 let budgetVersion;
 
@@ -18,7 +20,15 @@ request.onupgradeneeded = function (e) {
     db.createObjectStore("BudgetStore", { autoIncrement: true });
   }
 };
+request.onsuccess = ({ target }) => {
+  db = target.result;
 
+  // check if app is online before reading from db
+  if (navigator.onLine) {
+    checkDatabase();
+  }
+
+  
 request.onerror = function (e) {
   console.log(`Woops! ${e.target.errorCode}`);
 };
