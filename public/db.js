@@ -4,9 +4,9 @@ let db;
 let budgetVersion;
 
 // Create a new db request for a "budget" database.
-const request = indexedDB.open("BudgetDB", budgetVersion || 21);
+const request = indexedDB.open("BudgetDB", 1);
 
-request.onupgradeneeded = function (e) {
+request.onupgradeneeded = (e) => {
   console.log("Upgrade needed in IndexDB");
 
   const { oldVersion } = e;
@@ -14,23 +14,24 @@ request.onupgradeneeded = function (e) {
 
   console.log(`DB Updated from version ${oldVersion} to ${newVersion}`);
 
-  db = e.target.result;
+  let db = e.target.result;
 
   if (db.objectStoreNames.length === 0) {
     db.createObjectStore("BudgetStore", { autoIncrement: true });
   }
 };
-request.onsuccess = ({ target }) => {
-  db = target.result;
+
+request.onsuccess = (e) => {
+  db = e.target.result;
 
   // check if app is online before reading from db
   if (navigator.onLine) {
     checkDatabase();
   }
+};
 
-  
 request.onerror = function (e) {
-  console.log(`Woops! ${e.target.errorCode}`);
+  console.log(`Error! ${e.target.errorCode}`);
 };
 
 function checkDatabase() {
@@ -87,6 +88,10 @@ request.onsuccess = function (e) {
   }
 };
 
+request.onerror = (e) => {
+  console.log("Error", e.target.errorCode);
+};
+
 const saveRecord = (record) => {
   console.log("Save record invoked");
   // Create a transaction on the BudgetStore db with readwrite access
@@ -99,5 +104,33 @@ const saveRecord = (record) => {
   store.add(record);
 };
 
+function checkDB() {
+  const transaction = db.transaction(["BudgetStore"], "readwrite");
+  const store = transaction.objectStore("BudgetStore");
+  const getAll = store.getAll();
+
+  getAll.onsuccess = function () {
+    if (getAll.result.length > 0) {
+      fetch("/api/transaction/bulk", {
+        method: "POST",
+        body: JSON.stringify(getAll.result),
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json"
+        }
+      })
+        .then((response) => {
+          return response.json();
+        })
+        .then(() => {
+          // delete records if successful
+          const transaction = db.transaction(["BudgetStore"], "readwrite");
+          const store = transaction.objectStore("BudgetStore");
+          store.clear();
+        });
+    }
+  };
+}
+
 // Listen for app coming back online
-window.addEventListener("online", checkDatabase);
+window.addEventListener("online", checkDB);
